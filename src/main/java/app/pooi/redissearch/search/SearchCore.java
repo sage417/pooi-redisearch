@@ -61,7 +61,7 @@ public class SearchCore {
 
     /**
      * 
-     * write index field met infos
+     * write index field meta infos
      * 
      * @param index indexName
      * @param fieldMeta field meta info map
@@ -78,6 +78,23 @@ public class SearchCore {
         return this.indexDocument(index, field, documentId, document, doc -> Lists.newArrayList(doc.split("")));
     }
 
+    /**
+     * 为文档字段创建反向索引
+     * 
+     * 内部创建了两个结构：<br>
+     * 1. 反向索引 token -> documentId <br>
+     * 为了方便删除文档时清理反向索引增加第二个结构 <br>
+     * 2. 该文档拥有哪些反向索引 documentId -> tokens(index)
+     * 
+     * 
+     * 
+     * @param index      文档名称
+     * @param field      文档字段名称
+     * @param documentId 文档id
+     * @param document   文档值
+     * @param tokenizer  分词器
+     * @return
+     */
     public int indexDocument(final String index, final String field, final String documentId, final String document,
             final Function<String, List<String>> tokenizer) {
 
@@ -92,7 +109,7 @@ public class SearchCore {
 
                 final String[] idxs = tokens.stream()
                         .map(word -> genIdxName(redisSearchConfiguration.getPrefix(), index, field, word))
-                        .peek(idx -> ((StringRedisTemplate) operations).opsForSet().add(idx, documentId))
+                        .peek(idx -> template.opsForSet().add(idx, documentId))
                         .toArray(String[]::new);
 
                 template.opsForSet().add(docKey, idxs);
@@ -102,6 +119,17 @@ public class SearchCore {
         return results.size();
     }
 
+    /**
+     * 为文档字段创建排序索引
+     * 
+     * 和为文档字段创建反向索引类似创建了2个结构
+     * 
+     * @param index      文档名称
+     * @param field      文档字段名称
+     * @param documentId 文档id
+     * @param document   文档值
+     * @return
+     */
     public int indexSortField(final String index, final String field, final String documentId, final Double document) {
 
         final String docKey = genDocIdxName(this.redisSearchConfiguration.getPrefix(), index, documentId);
