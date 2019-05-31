@@ -51,13 +51,13 @@ public class SearchDocumentAspect {
 
         final Map<String, FieldMeta> meta = Arrays.stream(fields).collect(Collectors.toMap(Field::propertyName, f -> new FieldMeta(f.sort())));
         this.searchCore.indexMeta(annotation.index(), meta);
-
-        Arrays.stream(fields)
-//                .filter(field -> !field.sort())
-                .forEach(field -> this.searchCore.indexDocument(annotation.index(), field.propertyName(), documentId, parse(field.value(), joinPoint, String.class)));
-        Arrays.stream(fields)
-                .filter(Field::sort)
-                .forEach(field -> this.searchCore.indexSortField(annotation.index(), field.propertyName(), documentId, parse(field.value(), joinPoint, Double.class)));
+        
+        for(Field field : fields) {
+            this.searchCore.indexDocument(annotation.index(), field.propertyName(), documentId, parse(field.value(), joinPoint, String.class));
+            if (field.sort()) {
+                this.searchCore.indexSortField(annotation.index(), field.propertyName(), documentId, parse(field.value(), joinPoint, Double.class));
+            }
+        }
 
         return retVal;
     }
@@ -71,9 +71,10 @@ public class SearchDocumentAspect {
 
         final String documentId = parse(annotation.documentId(), joinPoint, String.class);
         final String document = parse(annotation.document(), joinPoint, String.class);
-//        final Field[] fields = annotation.fields();
+        // final Field[] fields = annotation.fields();
 
-//        this.searchCore.updateDocumentIndex(annotation.index(), ,documentId, document);
+        // this.searchCore.updateDocumentIndex(annotation.index(), ,documentId,
+        // document);
 
         return retVal;
     }
@@ -95,13 +96,13 @@ public class SearchDocumentAspect {
      * @return 解析后的字符串
      */
     private static <T> T parse(String spel, JoinPoint jp, Class<T> clazz) {
-        //获取被拦截方法参数名列表(使用Spring支持类库)
-        LocalVariableTableParameterNameDiscoverer u =
-                new LocalVariableTableParameterNameDiscoverer();
-        //使用SPEL进行key的解析
+        // 获取被拦截方法参数名列表(使用Spring支持类库)
+        LocalVariableTableParameterNameDiscoverer u = new LocalVariableTableParameterNameDiscoverer();
+        // 使用SPEL进行key的解析
         ExpressionParser parser = new SpelExpressionParser();
-        //SPEL上下文
-        StandardEvaluationContext context = new MethodBasedEvaluationContext(jp.getTarget(), ((MethodSignature) jp.getSignature()).getMethod(), jp.getArgs(), u);
+        // SPEL上下文
+        StandardEvaluationContext context = new MethodBasedEvaluationContext(jp.getTarget(),
+                ((MethodSignature) jp.getSignature()).getMethod(), jp.getArgs(), u);
         return parser.parseExpression(spel).getValue(context, clazz);
     }
 }
